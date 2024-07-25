@@ -5,15 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-batch_size = 32
-block_size = 8
-n_embd = 20
-n_blocks = 3
+batch_size = 32  # 64
+block_size = 8  # 256    # max context length for predictions
+n_embd = 32  # 384
+n_heads = 6
+n_blocks = 4  # 6
+train_val_split = 0.9
 dropout = 0.2
-lr = 1e-3
-max_itr = 10000
-eval_interval = 1000
-eval_iters = 1000
+lr = 1e-3  # 3e-4
+max_itr = 10001
+eval_interval = 500
+eval_iters = 200
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'device: {device}')
 
@@ -33,8 +35,7 @@ print(encode_seq('Hi Saqib'))
 print(decode_seq(encode_seq('Hi Saqib')))
 
 data = torch.tensor(encode_seq(text), dtype=torch.long)
-split_perc = 0.9
-train_size = int(len(data) * split_perc)
+train_size = int(len(data) * train_val_split)
 train_data = data[:train_size]
 val_data = data[train_size:]
 
@@ -49,6 +50,7 @@ def get_batch(split, batch_size):
 
 
 class Head(nn.Module):
+    """ single head of self-attention """
     def __init__(self, head_size):
         super().__init__()
         self.head_size = head_size
@@ -62,6 +64,7 @@ class Head(nn.Module):
         q = self.query(x)  # (B,T,head_size)
         k = self.key(x)    # (B,T,head_size)
 
+        # compute attention scores
         wei = q @ k.transpose(-2,-1) / (self.head_size**0.5)  # (B,T,T)
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))  # (B,T,T)
         wei = F.softmax(wei, dim=-1)  # (B,T,T)
@@ -84,6 +87,24 @@ class MultiHeadAttention(nn.Module):
         out = torch.cat([head(x) for head in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
+
+
+class LayerNorm1d:
+    def __init__(self, dim, eps=1e-8):
+        self.dim = dim
+        self.eps = eps
+        self.gain = torch.ones(dim)
+        self.bias = torch.zeros(dim)
+    
+    def __call__(self, x):
+        xmean = x.mean(dim=1, keepdim=True)   # layer mean
+        xstd = x.std(dim=1, keepdim=True)    # layer variance
+        x = (x - xmean) / (xstd + self.eps)
+        self.out = self.gain * x + self.bias
+        return self.out
+
+    def parameters(self):
+        return [self.gain, self.bias]
 
 
 class FeedForward(nn.Module):
@@ -127,9 +148,9 @@ class BigramLanguageModel(nn.Module):
         self.pos_embedding_table = nn.Embedding(block_size, self.n_embd)
         # self.sa_heads = MultiHeadAttention(4, n_embd // 4)
         # self.feed_forward = FeedForward(n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_heads=4) for _ in range(n_blocks)])
+        self.blocks = nn.Sequential(*[Block(n_embd, n_heads) for _ in range(n_blocks)])
         self.ln_final = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(self.n_embd, vocab_size)
+        self.lm_head = nn.Linear(self.n_embd, vocab_size)    # language model head
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
@@ -184,24 +205,24 @@ print(decode_seq(gen_text.tolist()))
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
-
-def estimate_loss(eval_iters=100):
-    out = {}
+def estimate_loss(split='train', eval_iters=100):
     model.eval()
     with torch.no_grad():
-        for split in ['train', 'val']:
-            losses = torch.zeros(eval_iters)
-            for itr in range(eval_iters):
-                x_batch, y_batch = get_batch(split, batch_size)
-                _, loss = model(x_batch, y_batch)
-                losses[itr] = loss.item()
-            out[split] = losses.mean()
+        losses = torch.zeros(eval_iters)
+        for itr in range(eval_iters):
+            x_batch, y_batch = get_batch(split, batch_size)
+            _, loss = model(x_batch, y_batch)
+            losses[itr] = loss.item()
+        out = losses.mean()
     model.train()
     return out
 
+# training loop
+losses = {}
 for itr in range(max_itr):
     if itr % eval_interval == 0:
-        losses = estimate_loss(eval_iters)
+        losses['train'] = estimate_loss('train', eval_iters)
+        losses['val'] = estimate_loss('val', eval_iters)
         print(f"step: {itr}, train_loss: {losses['train']:.4f}, val loss: {losses['val']:.4f}")
 
     x_batch, y_batch = get_batch('train', batch_size)
@@ -209,10 +230,13 @@ for itr in range(max_itr):
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
     optimizer.step()
-
-print(loss.item())
+# print(loss.item())
 
 # generate new text
 inp = torch.zeros((1,1), dtype=torch.long, device=device)
-gen_text = model.generate(inp, max_new_tokens=500)[0]
-print(decode_seq(gen_text.tolist()))
+gen_text = decode_seq(model.generate(inp, max_new_tokens=500)[0].tolist())
+print(gen_text)
+
+filename = "../data/generated.txt"
+with open(filename, 'w') as file:
+    file.write(gen_text)
