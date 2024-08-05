@@ -14,10 +14,10 @@ import tiktoken
 from datasets import load_dataset
 from tqdm import tqdm
 
-
-local_dir = 'edu_fineweb10B'
+script_dir = os.path.dirname(__file__)
+local_dir = os.path.join(script_dir, "../data/edu_fineweb10B")
 remote_name = "sample-10BT"
-shard_size = int(1e8)    # 100M tokens per shard, total 100 shards
+shard_size = int(1e8)    # 100M tokens per shard, total 100 shards = 10B gpt2 tokens
 
 # create cache and local dir if it doesn't exist yet
 DATA_CACHE_DIR = os.path.join(os.path.dirname(__file__), local_dir)
