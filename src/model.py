@@ -5,6 +5,15 @@ from dataclasses import dataclass
 import inspect
 
 
+@dataclass
+class GPTConfig:
+    context_length: int = 1024    # max context / sequence length
+    vocab_size: int = 50257    # number of tokens: 50000 BPE merges + 256 bytes tokens + 1 <endoftext> token
+    num_layers: int = 12
+    embd_size: int = 768    # embedding dim
+    num_heads: int = 12
+
+
 class CausalSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
