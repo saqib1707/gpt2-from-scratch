@@ -3,7 +3,7 @@ FineWeb-Edu dataset (for srs pretraining)
 https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu
 Downloads and tokenizes the data and saves data shards to disk.
 Run simply as:
-$ python fineweb.py
+$ python prepare_dataset.py
 Will save shards to the local directory "edu_fineweb10B".
 """
 
@@ -13,6 +13,7 @@ import multiprocessing as mp
 import tiktoken
 from datasets import load_dataset
 from tqdm import tqdm
+
 
 script_dir = os.path.dirname(__file__)
 local_dir = os.path.join(script_dir, "../data/edu_fineweb10B")
