@@ -1,19 +1,20 @@
-# GPT-2 Implementation and Training on FineWebEdu Dataset
+# GPT-2 Implementation in PyTorch
 
-This project aims to reproduce the GPT-2 model from the original paper and fine-tune it on the FineWebEdu dataset. The implementation is adapted from Andrej Karpathy's tutorial and offers a simplified, easy-to-understand PyTorch-based approach. Note that this code is intended primarily for educational purposes and is not optimized for speed or production deployment.
+This project reproduces the GPT-2 model in pytorch and trains it from scratch on the FineWeb-Edu dataset - a high-quality subset of FineWeb dataset tailored for educational content. The goal is to offer a simplified, easy-to-understand PyTorch implementation. Note that this code is intended primarily for educational purposes and is not optimized for speed or production deployment.
 
-### Project Overview
-This repository contains a PyTorch implementation of GPT-2, along with scripts for training and evaluation. The model is trained from scratch on the FineWebEdu dataset — a high-quality subset of CommonCrawl tailored for educational content.
-
-### Features
+### Key Features
 - **Simplified PyTorch Implementation:** Designed to be accessible and well-commented for ease of understanding.
-- **Customizable Training:** Hyperparameters are configurable via a Python dictionary and can be easily modified.
-- **Multi-GPU Training Support:** Training can be performed using multiple GPUs via PyTorch Distributed Data Parallel (DDP).
+- **Customizable Training:** Hyperparameters are configurable via the command line and can be easily modified.
+- **Multi-GPU Training Support:** Training can be performed using multiple GPUs using PyTorch Distributed Data Parallel (DDP).
 
-## Repository Structure (main files)
-- `src/train.py`: Script for training the GPT-2 model with customizable configurations.
-- `src/model.py`: Contains the GPT-2 model implementation, including embedding layers, transformer encoders, and the classification head.
-- `requirements.txt`: Dependencies required to run the project.
+
+## Repository Structure
+- `src/train.py`: Script to train the GPT-2 model with customizable configurations.
+- `src/model.py`: Contains the GPT-2 model implementation, including embedding layers, transformer blocks, and output layers.
+- `src/dataloader.py`:  Handles data loading and batching for the model during training.
+- `src/prepare_dataset.py`: Downloads and preprocesses the FineWebEdu dataset. Run this script before starting the training process.
+- `requirements.txt`: Python dependencies required to run the project.
+
 
 ## Getting Started
 
@@ -25,54 +26,65 @@ Ensure you have the following dependencies installed:
 - tiktoken
 - transformers (from huggingface)
 
-You can install all dependencies by running:
+You can install all dependencies with:
 ```bash
 pip install -r requirements.txt
 ```
 
-### Running the Training Script
-To start training the GPT-2 model, you can use the following commands:
-
-You can find the implementation in the `model.py` file. The main class is `GPT`, which contains the embedding layer, the transformer encoder, and the prediction head. All of the modules are heavily commented to make it easier to understand.
-
-The model config is defined as a python dictionary in `train.py`, you can experiment with different hyperparameters there. Training parameters can be passed using the command line. For example, to train the model for 5 epochs with a batch size of 32, you can run:
-
-- Single-GPU Training:
-```bash
-python train.py --num_epochs=5 
-```
-
-- Multi-GPU Training (using DDP):
-```bash
-torchrun --standalone --nproc_per_node=4 train.py
-```
-
-For more details on the training process and how to adjust hyperparameters, please refer to the `train.py` script.
-
-
 ## Dataset
 
-The GPT-2 model was originally trained on the WebText dataset (which hasn’t been officially released). The FineWebEdu dataset used here is a high-quality educational subset of the FineWeb dataset, itself a filtered version of CommonCrawl. Our subset, FineWebEdu-10BT, consists of approximately 10 billion tokens, specifically curated for educational content.
+The GPT-2 model was originally trained on the WebText dataset (not publicly released). For this project, we use the FineWebEdu-10B dataset—a specialized educational subset of the FineWeb dataset. It contains approximately 10 billion tokens focused on high-quality educational content.
 
-To download and generate the dataset:
+To download and prepare the dataset:
 ```bash
 python prepare_dataset.py
 ```
 
+### Running the Training Script
+You can start training the GPT-2 model using the following commands:
+
+You can experiment with different training and model config hyperparameters by setting them through the command line. 
+
+- Single-GPU Training:
+```bash
+python train.py --num_epochs=5
+```
+
+- Multi-GPU Training (uses Pytorch DDP):
+```bash
+torchrun --standalone --nproc_per_node=4 train.py    # adjust number of GPUs as per availability
+```
+
+For more details on the training process and customizing hyperparameters, refer to the `src/train.py` script.
+
 Training was performed from scratch using multiple GPUs with PyTorch's DDP framework.
 
-
-The model is trained (from scratch) using multiple GPUs using PyTorch's DDP. 
 
 ### Model Architecture
 The GPT-2 model consists of the following components:
 
-- **Token Embedding Layer:** Encodes input tokens.
-- **Positional Embedding Layer:** Adds positional information to the input sequence.
+- **Token Embedding Layer:** Encodes input tokens to dense vectors.
+- **Positional Embedding Layer:** Adds positional information to the token embeddings.
 - **Transformer Blocks:** Each block includes layer normalization, multi-headed self-attention, and an MLP with residual connections.
-- **Output Head:** The model is trained to predict the next token based on the previous sequence.
+- **Output Head:** Predicts the next token in the sequence based on the preceding context.
 
-The training objective is to predict the next token given the past tokens in a sequence, enabling the model to generate coherent text.
+The model is trained to predict the next token in a sequence, enabling coherent text generation.
+
+
+### Results
+
+The GPT-2 model was trained for roughly 50,000 steps (~3 epochs) using 4 NVIDIA A100 GPUs. Training took approximately 21 hours.
+
+![Training loss and eval](./assets/loss_eval.png)
+
+Here are some samples of text generated by the trained model: 
+
+*To be updated...*
+
+
+<!-- ## Potential Future Work
+
+1.  -->
 
 
 ## References:
@@ -80,9 +92,10 @@ The training objective is to predict the next token given the past tokens in a s
 - [GPT-3 Paper: Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)
 - [FineWebEdu-10B Dataset](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu)
 - [FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness](https://arxiv.org/abs/2205.14135)
+- [Attention is all you need](https://arxiv.org/abs/1706.03762)
 - [HellaSwag: Can a Machine Really Finish Your Sentence?](https://arxiv.org/abs/1905.07830)
 - Andrej Karpathy's Video Tutorial on GPT
 
 
 ## Acknowledgments
-This implementation is inspired by Andrej Karpathy’s approach to making complex AI concepts more accessible.
+This implementation is inspired by Andrej Karpathy’s tutorial and his approach to making complex AI concepts more accessible.
