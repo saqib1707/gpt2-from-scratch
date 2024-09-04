@@ -13,11 +13,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from model import GPT
 from dataloader import DataLoaderLite
-from hellaswag import render_example, iterate_examples, get_most_likely_row
+from src.hellaswag_eval import render_example, iterate_examples, get_most_likely_row
 
 torch.set_float32_matmul_precision('high')    # enable TF32 precision
 
-# torch compile results in error for me
+# set torch compile to True (if it doesn't throws any error) to speed up training
 use_torch_compile = False
 
 
@@ -267,7 +267,7 @@ def get_args():
     import argparse
     parser = argparse.ArgumentParser(description="Hyperparameter Configuration")
     parser.add_argument("--total_batch_size", type=int, default=524288, help="number of tokens processed for each weight update")    # =2^19 tokens/step update, (~0.5M tokens used in openai gpt3 paper)
-    parser.add_argument("--mini_batch_size", type=int, default=64, help="setting of mini_batch_size is just a performance optimization. bigger gpu, bigger mini_batch_size")
+    parser.add_argument("--mini_batch_size", type=int, default=32, help="setting of mini_batch_size is just a performance optimization. bigger gpu, bigger mini_batch_size")
     parser.add_argument("--context_length", type=int, default=1024)    # max sequence length (can also try 2048)
     parser.add_argument("--num_layers", type=int, default=12)
     parser.add_argument("--embd_size", type=int, default=768)
@@ -281,7 +281,7 @@ def get_args():
     parser.add_argument("--eval_freq", type=int, default=250)
     # parser.add_argument("--use_torch_compile", action='store_true')    # default False
     parser.add_argument("--seed", type=int, default=1337, help="Random seed for reproducibility")
-    parser.add_argument("--logdir", type=str, default="./logs_124M_50B/")
+    parser.add_argument("--logdir", type=str, default="./logs/")
     return parser.parse_args()
 
 
